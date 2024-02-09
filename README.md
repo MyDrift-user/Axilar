@@ -16,4 +16,4 @@ Axilar will be designed to make workflow automation accessible and efficient. Ta
 
 ## Get Involved
 
-Axilar is in its early development phase, and we're excited about the journey ahead. Contribute your ideas, and let's redefine workflow management together.
+Axilar is in its early development phase, and we're excited about the journey ahead. Contribute your ideas, and let's redefine workflow management together. If you have any kind of Idea for a name that would fit this project feel free to share it.
