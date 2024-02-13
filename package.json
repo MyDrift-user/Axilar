@@ -1,0 +1,48 @@
+{
+  "name": "axilar",
+  "productName": "Axilar",
+  "version": "1.0.0",
+  "description": "Your app description here",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "MyDrift",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "electron": "^20.2.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "auto-launch": "^5.0.6",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
+    "ini": "^4.1.1",
+    "mica-electron": "^1.5.3",
+    "resize-img": "^2.0.0",
+    "toastify-js": "^1.12.0"
+  },
+  "build": {
+    "appId": "com.mydrift.alexr",
+    "productName": "Axilar",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/win/icon.ico"
+    },
+    "nsis": {
+      "include": "installer.nsh",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Axilar"
+    }
+  }
+}
