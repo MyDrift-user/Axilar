@@ -1,4 +1,4 @@
-const { app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification } = require('electron');
+const { app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const { PARAMS, VALUE,  MicaBrowserWindow, IS_WINDOWS_11, WIN10 } = require('mica-electron');
@@ -9,8 +9,32 @@ const store = new Store();
 const appname = 'Axilar';
 let tray;
 let win;
+let [windowX, windowY] = win.getPosition();
+let [windowWidth, windowHeight] = win.getSize();
+let { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
 
-function createWindow() {
+
+function createPopup() {
+  const popup = new MicaBrowserWindow({
+    width: 800,
+    height: 600,
+    autoHideMenuBar: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+
+  popup.setAutoTheme();
+  //popup.setDarkTheme();
+  //popup.setLightTheme();
+  popup.setMicaEffect();
+
+  popup.loadFile('.popup/index.html');
+  
+}
+
+function createSettings() {
   const settings = new MicaBrowserWindow({
     width: 800,
     height: 600,
@@ -32,10 +56,14 @@ function createWindow() {
   settings.loadFile('.settings/index.html');
 }
 
+
+
 app.on('ready', () => {
+  createPopup();
+
   const shortcut = process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Alt+Shift+I';
   globalShortcut.register(shortcut, () => {
-    createWindow();
+    createSettings();
   });
 
   showStartupNotification();
@@ -46,7 +74,7 @@ app.on('ready', () => {
     submenu: [{
       role: 'help',
       accelerator: shortcut,
-      click: () => { createWindow(); }
+      click: () => { createSettings(); }
     }]  
   }));
 
@@ -78,7 +106,7 @@ function setupTray() {
     const isAutoLaunchEnabled = await autoLauncher.isEnabled();
 
     const contextMenu = Menu.buildFromTemplate([
-      { label: 'Settings', click: () => { createWindow(); } },
+      { label: 'Settings', click: () => { createSettings(); } },
       {
         label: 'Autostart',
         type: 'checkbox',
