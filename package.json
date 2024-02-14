@@ -13,7 +13,7 @@
   "author": "MyDrift",
   "license": "AGPL-3.0-only",
   "devDependencies": {
-    "electron": "^20.2.0",
+    "electron": "^20.3.12",
     "electron-builder": "^24.9.1"
   },
   "dependencies": {

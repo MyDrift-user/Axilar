@@ -9,17 +9,18 @@ const store = new Store();
 const appname = 'Axilar';
 let tray;
 let win;
-let [windowX, windowY] = win.getPosition();
-let [windowWidth, windowHeight] = win.getSize();
-let { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+
 
 
 function createPopup() {
   const popup = new MicaBrowserWindow({
-    width: 800,
-    height: 600,
+    width: 399,
+    height: 99,
     autoHideMenuBar: true,
     alwaysOnTop: true,
+    skipTaskbar: true, 
+    resizable: false, 
+    minimizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
@@ -31,8 +32,37 @@ function createPopup() {
   popup.setMicaEffect();
 
   popup.loadFile('.popup/index.html');
+
+  popup.resizable = false;
+
+  popup.width = 400,
+  popup.height = 100
+
+  createhoverbar()
   
 }
+
+function createhoverbar() {
+  const settings = new MicaBrowserWindow({
+    width: 20,
+    height: 5,
+    autoHideMenuBar: true,
+    alwaysOnTop: true,
+    skipTaskbar: true, 
+    resizable: false, 
+    frame: false,
+    minimizable: false
+  });
+
+  settings.setAutoTheme();
+  //settings.setDarkTheme();
+  //settings.setLightTheme();
+  settings.setMicaEffect();
+}
+
+
+
+
 
 function createSettings() {
   const settings = new MicaBrowserWindow({
@@ -55,6 +85,8 @@ function createSettings() {
 
   settings.loadFile('.settings/index.html');
 }
+
+
 
 
 
