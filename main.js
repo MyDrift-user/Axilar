@@ -1,4 +1,6 @@
-const { app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen } = require('electron');
+const appname = 'Axilar';
+
+const { app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const { PARAMS, VALUE,  MicaBrowserWindow, IS_WINDOWS_11, WIN10 } = require('mica-electron');
@@ -6,72 +8,127 @@ const AutoLaunch = require('auto-launch');
 const { autoUpdater } = require('electron-updater');
 
 const store = new Store();
-const appname = 'Axilar';
 let tray;
-let win;
+
+// Windows not opened
+let popup = null;
+let settings = null;
+let hoverbar = null;
+
+app.disableHardwareAcceleration();
 
 
+// Popup (explorer with shortcuts)
 
 function createPopup() {
-  const popup = new MicaBrowserWindow({
-    width: 399,
-    height: 99,
+  if (popup) {
+    popup.focus();
+    return;
+  }
+
+  popup = new MicaBrowserWindow({
+    width: 400,
+    height: 100,
     autoHideMenuBar: true,
     alwaysOnTop: true,
     skipTaskbar: true, 
     resizable: false, 
     minimizable: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
   });
 
   popup.setAutoTheme();
-  //popup.setDarkTheme();
-  //popup.setLightTheme();
   popup.setMicaEffect();
-
   popup.loadFile('.popup/index.html');
 
-  popup.resizable = false;
+  popup.on('move', () => {
+    checkWindowPosition(popup);
+  });
 
-  popup.width = 400,
-  popup.height = 100
-
-  createhoverbar()
-  
+  popup.on('closed', () => {
+    popup = null;
+  });
 }
 
+// popup position (if near edge of screen + Multi Screen Support)
+
+function checkWindowPosition(window) {
+  let threshold = 25;
+  let fadeOpacity = 0.5;
+  let windowBounds = window.getBounds();
+  
+  // Get all connected displays
+  let displays = screen.getAllDisplays();
+
+  // Function to calculate intersection area between window and display
+  function calculateIntersectionArea(displayBounds) {
+    let xOverlap = Math.max(0, Math.min(windowBounds.x + windowBounds.width, displayBounds.x + displayBounds.width) - Math.max(windowBounds.x, displayBounds.x));
+    let yOverlap = Math.max(0, Math.min(windowBounds.y + windowBounds.height, displayBounds.y + displayBounds.height) - Math.max(windowBounds.y, displayBounds.y));
+    return xOverlap * yOverlap;
+  }
+
+  // Find the display with the maximum intersection area with the window
+  let currentDisplay = displays.reduce((prev, current) => {
+    return (calculateIntersectionArea(current.bounds) > calculateIntersectionArea(prev.bounds)) ? current : prev;
+  });
+
+  // Check if the window is near any edge of the current display
+  let nearLeftEdge = windowBounds.x - currentDisplay.bounds.x <= threshold;
+  let nearRightEdge = currentDisplay.bounds.x + currentDisplay.bounds.width - (windowBounds.x + windowBounds.width) <= threshold;
+  let nearTopEdge = windowBounds.y - currentDisplay.bounds.y <= threshold;
+  let nearBottomEdge = currentDisplay.bounds.y + currentDisplay.bounds.height - (windowBounds.y + windowBounds.height) <= threshold;
+
+  let nearAnyEdge = nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge;
+
+  if (nearAnyEdge) {
+    window.setOpacity(fadeOpacity);
+  } else {
+    window.setOpacity(1.0);
+  }
+}
+
+// Hoverbar for popup
+
 function createhoverbar() {
-  const settings = new MicaBrowserWindow({
-    width: 20,
-    height: 5,
+  if (hoverbar) {
+    hoverbar.focus();
+    return;
+  }
+  
+  hoverbar = new BrowserWindow({
+    width: 600,
+    height: 600,
     autoHideMenuBar: true,
     alwaysOnTop: true,
     skipTaskbar: true, 
-    resizable: false, 
     frame: false,
-    minimizable: false
+    resizable: false, 
+    transparent: true,
+    minimizable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
   });
 
-  settings.setAutoTheme();
-  //settings.setDarkTheme();
-  //settings.setLightTheme();
-  settings.setMicaEffect();
+  hoverbar.loadFile('.hoverbar/index.html');
+
+  hoverbar.on('closed', () => {
+    hoverbar = null;
+  });
 }
 
+// Marketplace + Settings
 
+ function createSettings() {
+  if (settings) {
+    settings.focus();
+    return;
+  }
 
-
-
-function createSettings() {
-  const settings = new MicaBrowserWindow({
+  settings = new MicaBrowserWindow({
     width: 800,
     height: 600,
     autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
   });
 
   settings.once('ready-to-show', () => {
@@ -84,6 +141,11 @@ function createSettings() {
   settings.setMicaEffect();
 
   settings.loadFile('.settings/index.html');
+
+  settings.on('closed', () => {
+    settings = null;
+  });
+
 }
 
 
@@ -124,6 +186,9 @@ app.on('window-all-closed', () => {
   // app.quit(); // don't quit app, when closing windows
 });
 
+
+// Tray
+
 function setupTray() {
   app.whenReady().then(async () => {
     const icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icons/win/icon.ico')); // Make sure the path is correct
@@ -134,7 +199,9 @@ function setupTray() {
       path: app.getPath('exe'),
     });
 
-    // Check if autorun is enabled and update the checkbox
+    tray.on('click', () => {createPopup();});
+
+
     const isAutoLaunchEnabled = await autoLauncher.isEnabled();
 
     const contextMenu = Menu.buildFromTemplate([
@@ -157,8 +224,14 @@ function setupTray() {
 
     tray.setContextMenu(contextMenu);
     tray.setToolTip(appname);
+
   });
 }
+
+
+
+
+// Notification: App started
 
 function showStartupNotification() {
   // Check if the Notification API is supported on the platform
@@ -175,6 +248,9 @@ function showStartupNotification() {
     console.log('Notification API is not supported on this platform.');
   }
 }
+
+
+// Auto Updates
 
 autoUpdater.on('update-available', () => {
   const notification = new Notification({
