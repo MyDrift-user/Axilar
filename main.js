@@ -21,6 +21,9 @@ app.disableHardwareAcceleration();
 // Popup (explorer with shortcuts)
 
 function createPopup() {
+  let isMoving = false;
+  let moveTimeout;
+
   if (popup) {
     popup.focus();
     return;
@@ -34,25 +37,66 @@ function createPopup() {
     skipTaskbar: true, 
     resizable: false, 
     minimizable: false,
+    setOpacity: 1.0
   });
 
   popup.setAutoTheme();
   popup.setMicaEffect();
   popup.loadFile('.popup/index.html');
+  
+  popup.on('move', () => {
+    isMoving = true;
+  });
+  
+
+  if (!isMoving) {
+    const windowBounds = popup.getBounds();
+    const workArea = screen.getPrimaryDisplay().workArea;
+
+    let newPosition = { ...windowBounds };
+
+    // Check and adjust for the right boundary
+    if (windowBounds.x + windowBounds.width > workArea.x + workArea.width) {
+      newPosition.x = workArea.x + workArea.width - windowBounds.width;
+    }
+
+    // Check and adjust for the bottom boundary
+    if (windowBounds.y + windowBounds.height > workArea.y + workArea.height) {
+      newPosition.y = workArea.y + workArea.height - windowBounds.height;
+    }
+
+    // Check and adjust for the left boundary
+    if (windowBounds.x < workArea.x) {
+      newPosition.x = workArea.x;
+    }
+
+    // Check and adjust for the top boundary
+    if (windowBounds.y < workArea.y) {
+      newPosition.y = workArea.y;
+    }
+
+    // If the position is adjusted, set the new bounds
+    if (newPosition.x !== windowBounds.x || newPosition.y !== windowBounds.y) {
+      popup.setBounds(newPosition);
+    }
+  }
+
 
   popup.on('move', () => {
     checkWindowPosition(popup);
-  });
+  }),
 
   popup.on('closed', () => {
     popup = null;
-  });
+  })
+
+
 }
 
 // popup position (if near edge of screen + Multi Screen Support)
 
 function checkWindowPosition(window) {
-  let threshold = 25;
+  let threshold = 20;
   let fadeOpacity = 0.5;
   let windowBounds = window.getBounds();
   
@@ -78,12 +122,14 @@ function checkWindowPosition(window) {
   let nearBottomEdge = currentDisplay.bounds.y + currentDisplay.bounds.height - (windowBounds.y + windowBounds.height) <= threshold;
 
   let nearAnyEdge = nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge;
-
+  
   if (nearAnyEdge) {
     window.setOpacity(fadeOpacity);
   } else {
     window.setOpacity(1.0);
   }
+
+
 }
 
 // Hoverbar for popup
