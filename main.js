@@ -1,6 +1,6 @@
 const appname = 'Axilar';
 
-const { app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow } = require('electron');
+const { electron, app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const { PARAMS, VALUE,  MicaBrowserWindow, IS_WINDOWS_11, WIN10 } = require('mica-electron');
@@ -43,43 +43,6 @@ function createPopup() {
   popup.setAutoTheme();
   popup.setMicaEffect();
   popup.loadFile('.popup/index.html');
-  
-  popup.on('move', () => {
-    isMoving = true;
-  });
-  
-
-  if (!isMoving) {
-    const windowBounds = popup.getBounds();
-    const workArea = screen.getPrimaryDisplay().workArea;
-
-    let newPosition = { ...windowBounds };
-
-    // Check and adjust for the right boundary
-    if (windowBounds.x + windowBounds.width > workArea.x + workArea.width) {
-      newPosition.x = workArea.x + workArea.width - windowBounds.width;
-    }
-
-    // Check and adjust for the bottom boundary
-    if (windowBounds.y + windowBounds.height > workArea.y + workArea.height) {
-      newPosition.y = workArea.y + workArea.height - windowBounds.height;
-    }
-
-    // Check and adjust for the left boundary
-    if (windowBounds.x < workArea.x) {
-      newPosition.x = workArea.x;
-    }
-
-    // Check and adjust for the top boundary
-    if (windowBounds.y < workArea.y) {
-      newPosition.y = workArea.y;
-    }
-
-    // If the position is adjusted, set the new bounds
-    if (newPosition.x !== windowBounds.x || newPosition.y !== windowBounds.y) {
-      popup.setBounds(newPosition);
-    }
-  }
 
 
   popup.on('move', () => {
@@ -130,6 +93,35 @@ function checkWindowPosition(window) {
   }
 
 
+  const workArea = screen.getPrimaryDisplay().workArea;
+
+  let newPosition = { ...windowBounds };
+
+  // Check and adjust for the right boundary
+  if (windowBounds.x + windowBounds.width > workArea.x + workArea.width) {
+    newPosition.x = workArea.x + workArea.width - windowBounds.width;
+  }
+
+  // Check and adjust for the bottom boundary
+  if (windowBounds.y + windowBounds.height > workArea.y + workArea.height) {
+    newPosition.y = workArea.y + workArea.height - windowBounds.height;
+  }
+
+  // Check and adjust for the left boundary
+  if (windowBounds.x < workArea.x) {
+    newPosition.x = workArea.x;
+  }
+
+  // Check and adjust for the top boundary
+  if (windowBounds.y < workArea.y) {
+    newPosition.y = workArea.y;
+  }
+
+  // If the position is adjusted, set the new bounds
+  if (newPosition.x !== windowBounds.x || newPosition.y !== windowBounds.y) {
+      window.setBounds(newPosition);
+  }
+
 }
 
 // Hoverbar for popup
@@ -163,8 +155,8 @@ function createhoverbar() {
   });
 }
 
-// Marketplace + Settings
 
+// Marketplace + Settings
  function createSettings() {
   if (settings) {
     settings.focus();
@@ -233,8 +225,8 @@ app.on('window-all-closed', () => {
 });
 
 
-// Tray
 
+// Tray
 function setupTray() {
   app.whenReady().then(async () => {
     const icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icons/win/icon.ico')); // Make sure the path is correct
@@ -276,9 +268,7 @@ function setupTray() {
 
 
 
-
 // Notification: App started
-
 function showStartupNotification() {
   // Check if the Notification API is supported on the platform
   if (Notification.isSupported()) {
@@ -296,8 +286,8 @@ function showStartupNotification() {
 }
 
 
-// Auto Updates
 
+// Auto Updates
 autoUpdater.on('update-available', () => {
   const notification = new Notification({
     title: 'Update Available',
