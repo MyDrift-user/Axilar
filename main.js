@@ -17,12 +17,9 @@ let hoverbar = null;
 
 app.disableHardwareAcceleration();
 
-
 // Popup (explorer with shortcuts)
 
 function createPopup() {
-  let isMoving = false;
-  let moveTimeout;
 
   if (popup) {
     popup.focus();
@@ -37,7 +34,7 @@ function createPopup() {
     skipTaskbar: true, 
     resizable: false, 
     minimizable: false,
-    setOpacity: 1.0
+    setOpacity: 1.0,
   });
 
   popup.setAutoTheme();
@@ -59,6 +56,7 @@ function createPopup() {
 // popup position (if near edge of screen + Multi Screen Support)
 
 function checkWindowPosition(window) {
+
   let threshold = 20;
   let fadeOpacity = 0.5;
   let windowBounds = window.getBounds();
@@ -85,43 +83,56 @@ function checkWindowPosition(window) {
   let nearBottomEdge = currentDisplay.bounds.y + currentDisplay.bounds.height - (windowBounds.y + windowBounds.height) <= threshold;
 
   let nearAnyEdge = nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge;
-  
-  if (nearAnyEdge) {
+
+  if (nearAnyEdge && !nearBottomEdge) {
     window.setOpacity(fadeOpacity);
+    //window.setOpacity(0.1);
+    hoverbar.show();
+
+    // Near left edge
+    if (nearLeftEdge&& !nearTopEdge && !nearBottomEdge) {
+      // Perform actions for when the window is near the left edge
+      console.log("Near left edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
+    // Near right edge
+    if (nearRightEdge && !nearTopEdge && !nearBottomEdge) {
+      // Perform actions for when the window is near the right edge
+      console.log("Near right edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
+    // Near top edge
+    if (nearTopEdge && !nearLeftEdge && !nearRightEdge) {
+      // Perform actions for when the window is near the top edge
+      console.log("Near top edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
+    // Near bottom edge
+    if (nearBottomEdge && !nearLeftEdge && !nearRightEdge) {
+      // Perform actions for when the window is near the bottom edge
+      console.log("Near bottom edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
+    // Near top and left edge
+    if (nearLeftEdge && nearTopEdge) {
+      console.log("Near left and top edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
+    // Near top and right edge
+    if (nearRightEdge && nearTopEdge) {
+      console.log("Near right and top edge");
+      // Example: hoverbar.setPosition(x, y);
+    }
+
   } else {
     window.setOpacity(1.0);
+    hoverbar.hide();
   }
-
-
-  const workArea = screen.getPrimaryDisplay().workArea;
-
-  let newPosition = { ...windowBounds };
-
-  // Check and adjust for the right boundary
-  if (windowBounds.x + windowBounds.width > workArea.x + workArea.width) {
-    newPosition.x = workArea.x + workArea.width - windowBounds.width;
-  }
-
-  // Check and adjust for the bottom boundary
-  if (windowBounds.y + windowBounds.height > workArea.y + workArea.height) {
-    newPosition.y = workArea.y + workArea.height - windowBounds.height;
-  }
-
-  // Check and adjust for the left boundary
-  if (windowBounds.x < workArea.x) {
-    newPosition.x = workArea.x;
-  }
-
-  // Check and adjust for the top boundary
-  if (windowBounds.y < workArea.y) {
-    newPosition.y = workArea.y;
-  }
-
-  // If the position is adjusted, set the new bounds
-  if (newPosition.x !== windowBounds.x || newPosition.y !== windowBounds.y) {
-      window.setBounds(newPosition);
-  }
-
 }
 
 // Hoverbar for popup
@@ -186,12 +197,10 @@ function createhoverbar() {
 
 }
 
-
-
-
-
 app.on('ready', () => {
   createPopup();
+  createhoverbar();
+  hoverbar.hide();
 
   const shortcut = process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Alt+Shift+I';
   globalShortcut.register(shortcut, () => {
