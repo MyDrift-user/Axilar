@@ -12,7 +12,7 @@ let tray;
 
 // Windows not opened
 let popup = null;
-let settings = null;
+let options = null;
 let hoverbar = null;
 
 app.disableHardwareAcceleration();
@@ -53,6 +53,19 @@ function createPopup() {
 
 }
 
+// Check where the taskbar is
+
+function getTaskbarPosition() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { bounds, workArea } = primaryDisplay;
+
+  if (workArea.y > 0) return 'top';
+  if (workArea.x > 0) return 'left';
+  if (workArea.height < bounds.height) return 'bottom';
+  if (workArea.width < bounds.width) return 'right';
+  return 'unknown';
+}
+
 // popup position (if near edge of screen + Multi Screen Support)
 
 function checkWindowPosition(window) {
@@ -84,50 +97,70 @@ function checkWindowPosition(window) {
 
   let nearAnyEdge = nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge;
 
-  if (nearAnyEdge && !nearBottomEdge) {
-    window.setOpacity(fadeOpacity);
+  if (nearAnyEdge) {
     //window.setOpacity(0.1);
-    hoverbar.show();
+    //console.log(getTaskbarPosition());
+    let hoverbarPosition = { x: 0, y: 0 };
+    
 
     // Near left edge
-    if (nearLeftEdge&& !nearTopEdge && !nearBottomEdge) {
-      // Perform actions for when the window is near the left edge
+    if (nearLeftEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'left') {
+      window.setOpacity(fadeOpacity);
+      hoverbar.show();
       console.log("Near left edge");
-      // Example: hoverbar.setPosition(x, y);
+
+      hoverbarPosition.x = currentDisplay.bounds.x;
+      hoverbarPosition.y = windowBounds.y;
     }
 
     // Near right edge
-    if (nearRightEdge && !nearTopEdge && !nearBottomEdge) {
-      // Perform actions for when the window is near the right edge
+    if (nearRightEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'right') {
+      window.setOpacity(fadeOpacity);
+      hoverbar.show();
       console.log("Near right edge");
-      // Example: hoverbar.setPosition(x, y);
+
+      hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+      hoverbarPosition.y = windowBounds.y;
     }
 
     // Near top edge
-    if (nearTopEdge && !nearLeftEdge && !nearRightEdge) {
-      // Perform actions for when the window is near the top edge
-      console.log("Near top edge");
-      // Example: hoverbar.setPosition(x, y);
+    if (nearTopEdge && getTaskbarPosition() !== 'top') {
+      window.setOpacity(fadeOpacity);
+      hoverbar.show();
+
+      hoverbarPosition.y = currentDisplay.bounds.y;
+      if (!nearLeftEdge && !nearRightEdge) {
+        console.log("Near top edge");
+        hoverbarPosition.x = windowBounds.x;
+      } else if (nearLeftEdge) {
+        console.log("Near top left");
+        hoverbarPosition.x = currentDisplay.bounds.x;
+      } else if (nearRightEdge) {
+        console.log("Near top right");
+        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+      }
     }
 
     // Near bottom edge
-    if (nearBottomEdge && !nearLeftEdge && !nearRightEdge) {
-      // Perform actions for when the window is near the bottom edge
+    if (nearBottomEdge && getTaskbarPosition() !== 'bottom') {
+      window.setOpacity(fadeOpacity);
+      hoverbar.show();
       console.log("Near bottom edge");
-      // Example: hoverbar.setPosition(x, y);
+
+      hoverbarPosition.y = currentDisplay.bounds.y + currentDisplay.bounds.height - hoverbar.getBounds().height;
+      if (!nearLeftEdge && !nearRightEdge) {
+        console.log("Near bottom edge");
+        hoverbarPosition.x = windowBounds.x;
+      } else if (nearLeftEdge) {
+        console.log("Near bottom left");
+        hoverbarPosition.x = currentDisplay.bounds.x;
+      } else if (nearRightEdge) {
+        console.log("Near bottom right");
+        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+      }
     }
 
-    // Near top and left edge
-    if (nearLeftEdge && nearTopEdge) {
-      console.log("Near left and top edge");
-      // Example: hoverbar.setPosition(x, y);
-    }
-
-    // Near top and right edge
-    if (nearRightEdge && nearTopEdge) {
-      console.log("Near right and top edge");
-      // Example: hoverbar.setPosition(x, y);
-    }
+    hoverbar.setPosition(hoverbarPosition.x, hoverbarPosition.y);
 
   } else {
     window.setOpacity(1.0);
@@ -168,31 +201,31 @@ function createhoverbar() {
 
 
 // Marketplace + Settings
- function createSettings() {
-  if (settings) {
-    settings.focus();
+ function createOptions() {
+  if (options) {
+    options.focus();
     return;
   }
 
-  settings = new MicaBrowserWindow({
+  options = new MicaBrowserWindow({
     width: 800,
     height: 600,
     autoHideMenuBar: true,
   });
 
-  settings.once('ready-to-show', () => {
+  options.once('ready-to-show', () => {
     autoUpdater.checkForUpdatesAndNotify();
   });
 
-  settings.setAutoTheme();
-  //settings.setDarkTheme();
-  //settings.setLightTheme();
-  settings.setMicaEffect();
+  options.setAutoTheme();
+  //options.setDarkTheme();
+  //options.setLightTheme();
+  options.setMicaEffect();
 
-  settings.loadFile('.settings/index.html');
+  options.loadFile('.options/index.html');
 
-  settings.on('closed', () => {
-    settings = null;
+  options.on('closed', () => {
+    options = null;
   });
 
 }
@@ -204,7 +237,7 @@ app.on('ready', () => {
 
   const shortcut = process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Alt+Shift+I';
   globalShortcut.register(shortcut, () => {
-    createSettings();
+    createOptions();
   });
 
   showStartupNotification();
@@ -215,7 +248,7 @@ app.on('ready', () => {
     submenu: [{
       role: 'help',
       accelerator: shortcut,
-      click: () => { createSettings(); }
+      click: () => { createOptions(); }
     }]  
   }));
 
@@ -252,7 +285,7 @@ function setupTray() {
     const isAutoLaunchEnabled = await autoLauncher.isEnabled();
 
     const contextMenu = Menu.buildFromTemplate([
-      { label: 'Settings', click: () => { createSettings(); } },
+      { label: 'Options', click: () => { createOptions(); } },
       {
         label: 'Autostart',
         type: 'checkbox',
