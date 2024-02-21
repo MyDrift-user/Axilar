@@ -111,6 +111,10 @@ function checkWindowPosition(window) {
 
       hoverbarPosition.x = currentDisplay.bounds.x;
       hoverbarPosition.y = windowBounds.y;
+
+      hoverbar.setResizable(true);
+      hoverbar.setSize(5, 100);
+      hoverbar.setResizable(false);
     }
 
     // Near right edge
@@ -121,6 +125,10 @@ function checkWindowPosition(window) {
 
       hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
       hoverbarPosition.y = windowBounds.y;
+
+      hoverbar.setResizable(true);
+      hoverbar.setSize(5, 100);
+      hoverbar.setResizable(false);
     }
 
     // Near top edge
@@ -129,15 +137,31 @@ function checkWindowPosition(window) {
       hoverbar.show();
 
       hoverbarPosition.y = currentDisplay.bounds.y;
+
       if (!nearLeftEdge && !nearRightEdge) {
         console.log("Near top edge");
         hoverbarPosition.x = windowBounds.x;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(400, 5);
+        hoverbar.setResizable(false);
+
       } else if (nearLeftEdge) {
         console.log("Near top left");
         hoverbarPosition.x = currentDisplay.bounds.x;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(5, 5);
+        hoverbar.setResizable(false);
+
       } else if (nearRightEdge) {
         console.log("Near top right");
         hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(5, 5);
+        hoverbar.setResizable(false);
+
       }
     }
 
@@ -148,15 +172,31 @@ function checkWindowPosition(window) {
       console.log("Near bottom edge");
 
       hoverbarPosition.y = currentDisplay.bounds.y + currentDisplay.bounds.height - hoverbar.getBounds().height;
+
       if (!nearLeftEdge && !nearRightEdge) {
         console.log("Near bottom edge");
         hoverbarPosition.x = windowBounds.x;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(400, 5);
+        hoverbar.setResizable(false);
+
       } else if (nearLeftEdge) {
         console.log("Near bottom left");
         hoverbarPosition.x = currentDisplay.bounds.x;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(5, 5);
+        hoverbar.setResizable(false);
+
       } else if (nearRightEdge) {
         console.log("Near bottom right");
         hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+
+        hoverbar.setResizable(true);
+        hoverbar.setSize(5, 5);
+        hoverbar.setResizable(false);
+
       }
     }
 
@@ -177,14 +217,14 @@ function createhoverbar() {
   }
   
   hoverbar = new BrowserWindow({
-    width: 600,
-    height: 600,
+    width: 20,
+    height: 20,
     autoHideMenuBar: true,
     alwaysOnTop: true,
     skipTaskbar: true, 
     frame: false,
     resizable: false, 
-    transparent: true,
+    //transparent: true,
     minimizable: false,
     webPreferences: {
       nodeIntegration: true,
