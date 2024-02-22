@@ -1,11 +1,13 @@
 const appname = 'Axilar';
 
-const { electron, app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow, ipcMain  } = require('electron');
+const { electron, app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const { PARAMS, VALUE,  MicaBrowserWindow, IS_WINDOWS_11, WIN10 } = require('mica-electron');
 const AutoLaunch = require('auto-launch');
 const { autoUpdater } = require('electron-updater');
+const fs = require('fs');
+const ini = require('ini');
 
 const store = new Store();
 let tray;
@@ -16,15 +18,6 @@ let options = null;
 let hoverbar = null;
 
 app.disableHardwareAcceleration();
-
-
-ipcMain.on('color-change', (event, color) => {
-  if (hoverbar) {
-      hoverbar.webContents.send('color-change', color);
-  }
-  store.set('backgroundColor', color); // Save the color
-});
-
 
 // Popup (explorer with shortcuts)
 
@@ -116,7 +109,7 @@ function checkWindowPosition(window) {
     if (nearLeftEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'left') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
-      console.log("Near left edge");
+      //console.log("Near left edge");
 
       hoverbarPosition.x = currentDisplay.bounds.x - hoverbar.getBounds().width / 2;
       hoverbarPosition.y = windowBounds.y;
@@ -130,7 +123,7 @@ function checkWindowPosition(window) {
     if (nearRightEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'right') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
-      console.log("Near right edge");
+      //console.log("Near right edge");
 
       hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width + hoverbar.getBounds().width / 2;
       hoverbarPosition.y = windowBounds.y;
@@ -148,7 +141,7 @@ function checkWindowPosition(window) {
       hoverbarPosition.y = currentDisplay.bounds.y - hoverbar.getBounds().height / 2;
 
       if (!nearLeftEdge && !nearRightEdge) {
-        console.log("Near top edge");
+        //console.log("Near top edge");
         hoverbarPosition.x = windowBounds.x;
 
         hoverbar.setResizable(true);
@@ -156,16 +149,16 @@ function checkWindowPosition(window) {
         hoverbar.setResizable(false);
 
       } else if (nearLeftEdge) {
-        console.log("Near top left");
-        hoverbarPosition.x = currentDisplay.bounds.x;
+        //console.log("Near top left");
+        hoverbarPosition.x = currentDisplay.bounds.x - hoverbar.getBounds().width / 2;
 
         hoverbar.setResizable(true);
         hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       } else if (nearRightEdge) {
-        console.log("Near top right");
-        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+        //console.log("Near top right");
+        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width + hoverbar.getBounds().width / 2;
 
         hoverbar.setResizable(true);
         hoverbar.setSize(50, 50);
@@ -178,12 +171,12 @@ function checkWindowPosition(window) {
     if (nearBottomEdge && getTaskbarPosition() !== 'bottom') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
-      console.log("Near bottom edge");
+      //console.log("Near bottom edge");
 
       hoverbarPosition.y = currentDisplay.bounds.y + currentDisplay.bounds.height - hoverbar.getBounds().height + hoverbar.getBounds().height / 2;
 
       if (!nearLeftEdge && !nearRightEdge) {
-        console.log("Near bottom edge");
+        //console.log("Near bottom edge");
         hoverbarPosition.x = windowBounds.x;
 
         hoverbar.setResizable(true);
@@ -191,16 +184,16 @@ function checkWindowPosition(window) {
         hoverbar.setResizable(false);
 
       } else if (nearLeftEdge) {
-        console.log("Near bottom left");
-        hoverbarPosition.x = currentDisplay.bounds.x;
+        //console.log("Near bottom left");
+        hoverbarPosition.x = currentDisplay.bounds.x - hoverbar.getBounds().width / 2;
 
         hoverbar.setResizable(true);
         hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       } else if (nearRightEdge) {
-        console.log("Near bottom right");
-        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+        //console.log("Near bottom right");
+        hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width + hoverbar.getBounds().width / 2;
 
         hoverbar.setResizable(true);
         hoverbar.setSize(50, 50);
@@ -224,10 +217,20 @@ function createhoverbar() {
     hoverbar.focus();
     return;
   }
-  
+
+  const configPath = './config.ini';
+
+  // Read and parse the config.ini file
+  const configFile = fs.readFileSync(configPath, 'utf-8');
+  const config = ini.parse(configFile);
+
+  // Access the hoverbar color
+  const hoverbarColor = config.hoverbar.color;
+
   hoverbar = new BrowserWindow({
     width: 20,
     height: 20,
+    backgroundColor: hoverbarColor,
     autoHideMenuBar: true,
     alwaysOnTop: true,
     skipTaskbar: true, 
@@ -236,6 +239,7 @@ function createhoverbar() {
     //transparent: true,
     minimizable: false,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
       contextIsolation: false
     }
@@ -247,11 +251,6 @@ function createhoverbar() {
     hoverbar = null;
   });
 
-  // Send the saved color to the main window when it's ready
-  hoverbar.webContents.on('did-finish-load', () => {
-    const savedColor = store.get('backgroundColor', '#ffffff'); // Default to white if not set
-    hoverbar.webContents.send('color-change', savedColor);
-  });
 }
 
 
@@ -286,6 +285,7 @@ function createhoverbar() {
 }
 
 app.on('ready', () => {
+
   createPopup();
   createhoverbar();
   hoverbar.hide();

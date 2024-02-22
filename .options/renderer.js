@@ -15,13 +15,3 @@ function openTab(evt, tabName) {
 
 }
 
-// Change Hover color
-
-const { ipcRenderer } = require('electron');
-
-const colorPicker = document.getElementById('hoverbar-color-picker');
-
-colorPicker.addEventListener('change', (event) => {
-    const color = event.target.value;
-    ipcRenderer.send('color-change', color);
-});
