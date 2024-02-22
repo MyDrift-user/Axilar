@@ -1,6 +1,6 @@
 const appname = 'Axilar';
 
-const { electron, app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow } = require('electron');
+const { electron, app, Menu, MenuItem, globalShortcut, Tray, nativeImage, Notification, screen, BrowserWindow, ipcMain  } = require('electron');
 const path = require('node:path');
 const Store = require('electron-store');
 const { PARAMS, VALUE,  MicaBrowserWindow, IS_WINDOWS_11, WIN10 } = require('mica-electron');
@@ -16,6 +16,15 @@ let options = null;
 let hoverbar = null;
 
 app.disableHardwareAcceleration();
+
+
+ipcMain.on('color-change', (event, color) => {
+  if (hoverbar) {
+      hoverbar.webContents.send('color-change', color);
+  }
+  store.set('backgroundColor', color); // Save the color
+});
+
 
 // Popup (explorer with shortcuts)
 
@@ -109,11 +118,11 @@ function checkWindowPosition(window) {
       hoverbar.show();
       console.log("Near left edge");
 
-      hoverbarPosition.x = currentDisplay.bounds.x;
+      hoverbarPosition.x = currentDisplay.bounds.x - hoverbar.getBounds().width / 2;
       hoverbarPosition.y = windowBounds.y;
 
       hoverbar.setResizable(true);
-      hoverbar.setSize(5, 100);
+      hoverbar.setSize(50, 100);
       hoverbar.setResizable(false);
     }
 
@@ -123,11 +132,11 @@ function checkWindowPosition(window) {
       hoverbar.show();
       console.log("Near right edge");
 
-      hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
+      hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width + hoverbar.getBounds().width / 2;
       hoverbarPosition.y = windowBounds.y;
 
       hoverbar.setResizable(true);
-      hoverbar.setSize(5, 100);
+      hoverbar.setSize(50, 100);
       hoverbar.setResizable(false);
     }
 
@@ -136,14 +145,14 @@ function checkWindowPosition(window) {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
 
-      hoverbarPosition.y = currentDisplay.bounds.y;
+      hoverbarPosition.y = currentDisplay.bounds.y - hoverbar.getBounds().height / 2;
 
       if (!nearLeftEdge && !nearRightEdge) {
         console.log("Near top edge");
         hoverbarPosition.x = windowBounds.x;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(400, 5);
+        hoverbar.setSize(400, 50);
         hoverbar.setResizable(false);
 
       } else if (nearLeftEdge) {
@@ -151,7 +160,7 @@ function checkWindowPosition(window) {
         hoverbarPosition.x = currentDisplay.bounds.x;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(5, 5);
+        hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       } else if (nearRightEdge) {
@@ -159,7 +168,7 @@ function checkWindowPosition(window) {
         hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(5, 5);
+        hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       }
@@ -171,14 +180,14 @@ function checkWindowPosition(window) {
       hoverbar.show();
       console.log("Near bottom edge");
 
-      hoverbarPosition.y = currentDisplay.bounds.y + currentDisplay.bounds.height - hoverbar.getBounds().height;
+      hoverbarPosition.y = currentDisplay.bounds.y + currentDisplay.bounds.height - hoverbar.getBounds().height + hoverbar.getBounds().height / 2;
 
       if (!nearLeftEdge && !nearRightEdge) {
         console.log("Near bottom edge");
         hoverbarPosition.x = windowBounds.x;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(400, 5);
+        hoverbar.setSize(400, 50);
         hoverbar.setResizable(false);
 
       } else if (nearLeftEdge) {
@@ -186,7 +195,7 @@ function checkWindowPosition(window) {
         hoverbarPosition.x = currentDisplay.bounds.x;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(5, 5);
+        hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       } else if (nearRightEdge) {
@@ -194,7 +203,7 @@ function checkWindowPosition(window) {
         hoverbarPosition.x = currentDisplay.bounds.x + currentDisplay.bounds.width - hoverbar.getBounds().width;
 
         hoverbar.setResizable(true);
-        hoverbar.setSize(5, 5);
+        hoverbar.setSize(50, 50);
         hoverbar.setResizable(false);
 
       }
@@ -236,6 +245,12 @@ function createhoverbar() {
 
   hoverbar.on('closed', () => {
     hoverbar = null;
+  });
+
+  // Send the saved color to the main window when it's ready
+  hoverbar.webContents.on('did-finish-load', () => {
+    const savedColor = store.get('backgroundColor', '#ffffff'); // Default to white if not set
+    hoverbar.webContents.send('color-change', savedColor);
   });
 }
 
