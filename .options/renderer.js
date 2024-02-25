@@ -15,3 +15,17 @@ function openTab(evt, tabName) {
 
 }
 
+document.getElementById('hoverbar-color-picker').addEventListener('input', (event) => {
+    const newColor = event.target.value;
+    window.electron.sendColorUpdate(newColor);
+  });
+
+  window.electron.onSetColor((color) => {
+  document.getElementById('hoverbar-color-picker').value = color;
+});
+
+
+window.electron.onSetColor((color) => {
+    document.getElementById('hoverbar-color-picker').value = color;
+  });
+  

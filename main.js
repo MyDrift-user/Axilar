@@ -9,8 +9,11 @@ const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const ini = require('ini');
 
-const store = new Store();
+const { debounce } = require('lodash');
+
 let tray;
+
+const configPath = './config.ini';
 
 // Windows not opened
 let popup = null;
@@ -79,7 +82,7 @@ function checkWindowPosition(window) {
   // Get all connected displays
   let displays = screen.getAllDisplays();
 
-  // Function to calculate intersection area between window and display
+  // calculate intersection area between window and display
   function calculateIntersectionArea(displayBounds) {
     let xOverlap = Math.max(0, Math.min(windowBounds.x + windowBounds.width, displayBounds.x + displayBounds.width) - Math.max(windowBounds.x, displayBounds.x));
     let yOverlap = Math.max(0, Math.min(windowBounds.y + windowBounds.height, displayBounds.y + displayBounds.height) - Math.max(windowBounds.y, displayBounds.y));
@@ -105,7 +108,6 @@ function checkWindowPosition(window) {
     let hoverbarPosition = { x: 0, y: 0 };
     
 
-    // Near left edge
     if (nearLeftEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'left') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
@@ -119,7 +121,6 @@ function checkWindowPosition(window) {
       hoverbar.setResizable(false);
     }
 
-    // Near right edge
     if (nearRightEdge && !nearTopEdge && !nearBottomEdge && getTaskbarPosition() !== 'right') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
@@ -133,7 +134,6 @@ function checkWindowPosition(window) {
       hoverbar.setResizable(false);
     }
 
-    // Near top edge
     if (nearTopEdge && getTaskbarPosition() !== 'top') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
@@ -167,7 +167,6 @@ function checkWindowPosition(window) {
       }
     }
 
-    // Near bottom edge
     if (nearBottomEdge && getTaskbarPosition() !== 'bottom') {
       window.setOpacity(fadeOpacity);
       hoverbar.show();
@@ -213,30 +212,42 @@ function checkWindowPosition(window) {
 // Hoverbar for popup
 
 function createhoverbar() {
+  
   if (hoverbar) {
     hoverbar.focus();
     return;
   }
 
-  const configPath = './config.ini';
+  // update hoverbar properties
+  const updateHoverbar = (config) => {
+    if (hoverbar && config.hoverbar) { // Check if config.hoverbar is defined
+      const hoverbarColor = config.hoverbar.color;
+      hoverbar.setBackgroundColor(hoverbarColor);
+    }
+  };
 
-  // Read and parse the config.ini file
-  const configFile = fs.readFileSync(configPath, 'utf-8');
-  const config = ini.parse(configFile);
+  // read and apply configuration
+  const applyConfig = () => {
+    try {
+      const configFile = fs.readFileSync(configPath, 'utf-8');
+      const config = ini.parse(configFile);
+      updateHoverbar(config);
+    } catch (error) {
+      console.error('Error reading or parsing config file:', error);
+    }
+  };
 
-  // Access the hoverbar color
-  const hoverbarColor = config.hoverbar.color;
+  // Debounce applyConfig to prevent rapid successive calls
+  const debouncedApplyConfig = debounce(applyConfig, 300);
 
   hoverbar = new BrowserWindow({
     width: 20,
     height: 20,
-    backgroundColor: hoverbarColor,
     autoHideMenuBar: true,
     alwaysOnTop: true,
-    skipTaskbar: true, 
+    skipTaskbar: true,
     frame: false,
-    resizable: false, 
-    //transparent: true,
+    resizable: false,
     minimizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -249,8 +260,17 @@ function createhoverbar() {
 
   hoverbar.on('closed', () => {
     hoverbar = null;
+    fs.unwatchFile(configPath);
   });
 
+  applyConfig();
+
+  // Watch for changes in config.ini
+  fs.watch(configPath, (eventType, filename) => {
+    if (filename) {
+      debouncedApplyConfig();
+    }
+  });
 }
 
 
@@ -265,7 +285,29 @@ function createhoverbar() {
     width: 800,
     height: 600,
     autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+    },
   });
+
+  options.webContents.on('did-finish-load', () => {
+    // Read the color from config.ini
+    const configFilePath = path.join(__dirname, 'config.ini');
+    fs.readFile(configFilePath, 'utf-8', (err, data) => {
+      if (err) {
+        console.error('Error reading config file:', err);
+        return;
+      }
+
+      // Parse the INI file content
+      const config = ini.parse(data);
+      
+      // Send the color to the renderer process
+      options.webContents.send('set-color', config.hoverbar.color);
+    });
+  });
+
 
   options.once('ready-to-show', () => {
     autoUpdater.checkForUpdatesAndNotify();
@@ -283,6 +325,41 @@ function createhoverbar() {
   });
 
 }
+
+// Save Configurations
+
+ipcMain.on('update-color', (event, newColor) => {
+  fs.readFile(configPath, 'utf-8', (err, data) => {
+    if (err) {
+      console.error('Error reading config file:', err);
+      event.reply('update-color-response', 'Failed to read config file');
+      return;
+    }
+
+    let config = ini.parse(data);
+
+    if (!config.hoverbar) {
+      config.hoverbar = {};
+    }
+    config.hoverbar.color = newColor;
+
+    const newConfigData = ini.stringify(config);
+
+    fs.writeFile(configPath, newConfigData, 'utf-8', (err) => {
+      if (err) {
+        console.error('Error writing to config file:', err);
+        event.reply('update-color-response', 'Failed to write to config file');
+        return;
+      }
+
+      event.reply('update-color-response', 'Config updated successfully');
+    });
+  });
+});
+
+
+
+
 
 app.on('ready', () => {
 
@@ -326,7 +403,7 @@ app.on('window-all-closed', () => {
 // Tray
 function setupTray() {
   app.whenReady().then(async () => {
-    const icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icons/win/icon.ico')); // Make sure the path is correct
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icons/win/icon.ico'));
     tray = new Tray(icon);
 
     const autoLauncher = new AutoLaunch({
@@ -367,15 +444,13 @@ function setupTray() {
 
 // Notification: App started
 function showStartupNotification() {
-  // Check if the Notification API is supported on the platform
+  // Check if the Notification API is supported
   if (Notification.isSupported()) {
-    // Create a new notification
     const notification = new Notification({
       title: appname + ' Started',
       body: appname + ' has started successfully!'
     });
-
-    // Show the notification
+    
     notification.show();
   } else {
     console.log('Notification API is not supported on this platform.');

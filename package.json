@@ -21,6 +21,7 @@
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.7",
     "ini": "^4.1.1",
+    "lodash": "^4.17.21",
     "mica-electron": "^1.5.3",
     "resize-img": "^2.0.0",
     "toastify-js": "^1.12.0"
